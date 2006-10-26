@@ -1,0 +1,11 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=1694
+
+This script helps to work with code snippets. It provides functions to insert, edit, create, delete and rename code snippets.          
+Snippets are files that can be loaded into the active buffer (e.g. programmers can easily add a template function header when writing a new function or add often used codes).                   
+                                                                   
+To invoke the snippets manager, press <leader>sm                   
+  Memory aid: sm (s)nippets(m)anager                               
+In the current window a list of code snippets will be shown. To copy a snippet into the buffer in which SnippetsMgr was invoked,  move cursor over a snippet and press <enter>. That's it.           
+                                                                   
+Simple and not very useful code snippets are provided with this script. See them as examples and as starting point to write own ones. Code snippets are very personal. To use them in an efficient way you will have to write your owns.                                         
+
