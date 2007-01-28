@@ -20,10 +20,13 @@
 "**            PURPOSE.                                                     **
 "**            See the GNU General Public License for more details.         **
 "**                                                                         **
-"** Version:   1.0.0                                                        **
+"** Version:   1.01.00                                                      **
 "**            tested under Windows (gvim 7.0)                              **
 "**                                                                         **
-"** History:   1.0.0  26. Oct. 2006                                         **
+"** History:   1.01.00,  19. Nov. 2006                                      **
+"**              Indentation of snippets added. Thanks to Roman Roelofson   **
+"**              for the inspiration.                                       **
+"**            1.00.00,  26. Oct. 2006                                      **
 "**              initial version                                            **
 "**                                                                         **
 "*****************************************************************************
@@ -58,16 +61,20 @@
 "**   To configure SnippetsMgr you may set the following variables in your  **
 "**   vimrc-file. If they are not set, defaults will be taken.              **
 "**                                                                         **
-"**     - <Plug>smgr_MapSnippetsManager                                     **
+"**     - Mapping <Plug>smgr_MapSnippetsManager                             **
 "**       mapping to start SnippetsMgr                                      **
 "**       default:                                                          **
 "**         nmap <silent> <unique> <leader>sm <Plug>smgr_MapSnippetsManager **
 "**                                                                         **
-"**     - g:smgr_snippetsPath                                               **
+"**     - Variable g:smgr_snippetsPath                                      **
 "**       path to search for snippets files (suffix *.smg)                  **
 "**       default:                                                          **
 "**         let g:smgr_snippetsPath = $VIM."/vimfiles/snippets"             **
 "**                                                                         **
+"**     - Variable g:smgr_shiftWidth                                        **
+"**       This variable defines how much to indent code when loading        **
+"**       a snippet independent from Vim's option 'shiftwidth'.             **
+"**       Default: use Vim's option 'shiftwidth'                            **
 "**                                                                         **
 "**   Module prefix is smgr_                                                **
 "**                                                                         **
@@ -108,6 +115,11 @@ if !exists('g:smgr_snippetsPath')
     let g:smgr_snippetsPath = $VIM."/vimfiles/snippets"
 endif
 
+
+" set value for indentation; if not defined by user, use 'shiftwidth'
+if !exists ( 'g:smgr_shiftWidth' )
+    let g:smgr_shiftWidth = &shiftwidth
+endif
 
 
 "*****************************************************************************
@@ -157,13 +169,13 @@ endfunction
 
 
 "*****************************************************************************
-"** input:   ---                                                            **
+"** input:   makeIndent: 0 no indent, else indent the snippet               **
 "** output:  ---                                                            **
 "**                                                                         **
 "** remarks:                                                                **
 "**   Load snippet under cursor.                                            **
 "*****************************************************************************
-function <SID>smgr_LoadSnippet()
+function <SID>smgr_LoadSnippet( makeIndent )
 
     let l:snippetID = GetSnippetID()
 
@@ -173,10 +185,34 @@ function <SID>smgr_LoadSnippet()
         if ( filereadable( s:snippetFile ) )
             call s:smgr_Exit()              " close user interface
 
+            " Get number of lines before loading snippet and later after
+            " loading to get number of new lines (needed to indent)
+            let numLines = line( "$" )
+
             let l:oldCpoptions	= &cpoptions    " don't change alternate file name
             setlocal cpoptions-=a
             :execute "-1read ".s:snippetFile
             let &cpoptions	= l:oldCpoptions	" restore previous options
+
+            " now make the indentation if required
+            if ( a:makeIndent )
+                " use a script specific shift width
+                let shiftWidthBackup = &shiftwidth
+                let &shiftwidth      = g:smgr_shiftWidth
+
+                " calculate number of lines of the snippet
+                let numLines = line( "$" ) - numLines
+
+                if ( numLines > 0 )
+                    execute "normal  =".numLines."+"
+                else
+                    execute "normal  =0"
+                endif
+
+                " restore shift width of indentation
+                let &shiftwidth = shiftWidthBackup
+            endif
+
         else
             call s:Error( 4, s:snippetFile )
         endif
@@ -416,9 +452,16 @@ function s:ShowSnippetsManager()
         %delete _
 
         " add content
-        let l:txt  =         "\"   Snippets Manager\n"
-        let l:txt  = l:txt . "\"  ==================\n"
-        let l:txt  = l:txt . "\"  q:quit  <enter>/mouse-click:load  u:update  d:delete  r:rename  e:edit  n:new\n"
+        let l:txt  =         "\"       Snippets Manager\n"
+        let l:txt  = l:txt . "\"  ==========================\n"
+        let l:txt  = l:txt . "\"  q:quit\n"
+        let l:txt  = l:txt . "\"  <enter>/mouse-click:load with indent\n"
+        let l:txt  = l:txt . "\"  l:load without indent\n"
+        let l:txt  = l:txt . "\"  u:update this list\n"  
+        let l:txt  = l:txt . "\"  d:delete\n"
+        let l:txt  = l:txt . "\"  r:rename\n"  
+        let l:txt  = l:txt . "\"  e:edit\n"
+        let l:txt  = l:txt . "\"  n:new\n"
         let l:txt  = l:txt . "\"\n"
         let l:txt  = l:txt . "> Code Snippets:"
         let l:txt  = l:txt . "\n"
@@ -514,8 +557,9 @@ endfunction
 function s:SetLocalKeyMappings()
 
     nnoremap <buffer> <silent> q             :call <SID>smgr_Exit()<cr>
-    nnoremap <buffer> <silent> <enter>       :call <SID>smgr_LoadSnippet()<cr>
-    nnoremap <buffer> <silent> <2-leftmouse> :call <SID>smgr_LoadSnippet()<cr>
+    nnoremap <buffer> <silent> <enter>       :call <SID>smgr_LoadSnippet( 1 )<cr>
+    nnoremap <buffer> <silent> <2-leftmouse> :call <SID>smgr_LoadSnippet( 1 )<cr>
+    nnoremap <buffer> <silent> l             :call <SID>smgr_LoadSnippet( 0 )<cr>
     nnoremap <buffer> <silent> u             :call <SID>smgr_UpdateSnippets()<cr>
     nnoremap <buffer> <silent> d             :call <SID>smgr_DeleteSnippet()<cr>
     nnoremap <buffer> <silent> r             :call <SID>smgr_RenameSnippet()<cr>
